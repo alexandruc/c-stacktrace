@@ -1,14 +1,15 @@
 #include <stdlib.h>
 #include <unistd.h>
-#include <stdio.h>
+#include <iostream>
 
-#define EXE_PATH "/home/alex/workarea/c-stacktrace-build/testc/testc"
-
+#define EXE_PATH "/home/alex/workarea/c-stacktrace-build/testcpp/testcpp"
+extern "C" {
 #include "../stacktrace.h"
+}
 
 static void sig_hup(int sig,  struct sigcontext ctx)
 {
-    printf("sig_hup: got signal %d\n", sig);
+    std::cout << "sig_hup: got signal %d" << sig << std::endl;
     switch(sig)
     {
     case SIGSEGV:
@@ -16,9 +17,7 @@ static void sig_hup(int sig,  struct sigcontext ctx)
         static const unsigned int size = 2048;
         char outBuf[size];
         printStackTrace(outBuf, size, EXE_PATH, &ctx);
-        printf("%s", outBuf);
-        fflush(stderr);
-        fflush(stdout);
+        std::cout << outBuf << std::endl;
         break;
     }
     }
@@ -26,19 +25,30 @@ static void sig_hup(int sig,  struct sigcontext ctx)
     _exit(1); //prevent looping
 }
 
-/* dummy crash function */
-static void crashMe()
+class CCrashMe
 {
-    char* p = 0;
-    *p = 'a';
-}
+public:
+    void callCrashMe()
+    {
+        crashMe();
+    }
+
+    /* dummy crash function */
+    void crashMe()
+    {
+        char* p = 0;
+        *p = 'a';
+    }
+};
+
 
 int main(int argc, char* argv[])
 {
     initSigHandler(&sig_hup);
 
     //generate a crash
-    crashMe();
+    CCrashMe crasher;
+    crasher.callCrashMe();
 
     return 0;
 }
